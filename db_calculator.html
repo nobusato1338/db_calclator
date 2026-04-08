@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音圧レベル合成 計算ツール</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", "メイリオ", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 40px 48px;
+      width: 420px;
+    }
+
+    h1 {
+      font-size: 20px;
+      color: #1a202c;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .inputs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      color: #4a5568;
+      font-weight: 600;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 18px;
+      color: #1a202c;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: #4299e1;
+    }
+
+    .unit {
+      font-size: 13px;
+      color: #718096;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .minus-sign {
+      font-size: 28px;
+      color: #718096;
+      font-weight: 300;
+      margin-top: 20px;
+      flex-shrink: 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.05em;
+    }
+
+    button:hover {
+      background: #3182ce;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .result-box {
+      margin-top: 28px;
+      background: #ebf8ff;
+      border: 2px solid #bee3f8;
+      border-radius: 12px;
+      padding: 20px 24px;
+      text-align: center;
+      display: none;
+    }
+
+    .result-box.visible {
+      display: block;
+    }
+
+    .result-label {
+      font-size: 13px;
+      color: #2b6cb0;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .result-value {
+      font-size: 40px;
+      font-weight: 700;
+      color: #1a365d;
+      letter-spacing: -0.5px;
+    }
+
+    .result-unit {
+      font-size: 18px;
+      color: #2b6cb0;
+      margin-left: 4px;
+    }
+
+    .result-box.negative .result-value {
+      color: #c53030;
+    }
+
+    .error-msg {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #e53e3e;
+      text-align: center;
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    .qr-toggle {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      background: #edf2f7;
+      color: #4a5568;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .qr-toggle:hover {
+      background: #e2e8f0;
+    }
+
+    .qr-box {
+      margin-top: 16px;
+      text-align: center;
+      display: none;
+    }
+
+    .qr-box.visible {
+      display: block;
+    }
+
+    .qr-box p {
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 10px;
+    }
+
+    #qrcode {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>音圧レベル合成 計算ツール</h1>
+
+    <div class="inputs">
+      <div class="input-group">
+        <label for="val1">音圧レベル 1</label>
+        <input type="number" id="val1" placeholder="例: 80" step="any">
+        <div class="unit">dB</div>
+      </div>
+      <div class="minus-sign">＋</div>
+      <div class="input-group">
+        <label for="val2">音圧レベル 2</label>
+        <input type="number" id="val2" placeholder="例: 60" step="any">
+        <div class="unit">dB</div>
+      </div>
+    </div>
+
+    <button onclick="calculate()">計算する</button>
+
+    <p class="error-msg" id="error">数値を両方入力してください。</p>
+
+    <div class="result-box" id="result-box">
+      <div class="result-label">音圧レベル合成（1 ＋ 2）</div>
+      <div>
+        <span class="result-value" id="result-value">0</span>
+        <span class="result-unit">dB</span>
+      </div>
+    </div>
+    <button class="qr-toggle" onclick="toggleQR()">QRコードを表示</button>
+
+    <div class="qr-box" id="qr-box">
+      <p>同じWi-Fiのスマホで読み取ると開けます</p>
+      <div id="qrcode"></div>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      const v1 = document.getElementById("val1").value;
+      const v2 = document.getElementById("val2").value;
+      const error = document.getElementById("error");
+      const box = document.getElementById("result-box");
+      const resultEl = document.getElementById("result-value");
+
+      if (v1 === "" || v2 === "") {
+        error.classList.add("visible");
+        box.classList.remove("visible");
+        return;
+      }
+
+      error.classList.remove("visible");
+
+      const p1 = Math.pow(10, parseFloat(v1) / 10);
+      const p2 = Math.pow(10, parseFloat(v2) / 10);
+
+      const result = 10 * Math.log10(p1 + p2);
+      const rounded = Math.round(result * 100) / 100;
+
+      resultEl.textContent = rounded;
+      box.classList.remove("negative");
+      box.classList.add("visible");
+    }
+
+    // Enterキーでも計算
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") calculate();
+    });
+
+    function getLocalIP() {
+      return new Promise((resolve) => {
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel("");
+        pc.createOffer().then(offer => pc.setLocalDescription(offer));
+        pc.onicecandidate = (ice) => {
+          if (!ice.candidate) return;
+          const match = ice.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+          if (match && !match[1].startsWith("127.")) {
+            resolve(match[1]);
+            pc.close();
+          }
+        };
+        setTimeout(() => resolve(null), 2000);
+      });
+    }
+
+    let qrGenerated = false;
+    async function toggleQR() {
+      const box = document.getElementById("qr-box");
+      const btn = document.querySelector(".qr-toggle");
+      const isVisible = box.classList.toggle("visible");
+
+      if (isVisible && !qrGenerated) {
+        const localIP = await getLocalIP();
+        const url = localIP
+          ? window.location.href.replace(/localhost|127\.0\.0\.1/, localIP)
+          : window.location.href;
+
+        new QRCode(document.getElementById("qrcode"), {
+          text: url,
+          width: 160,
+          height: 160,
+        });
+
+        const label = document.querySelector(".qr-box p");
+        label.textContent = localIP
+          ? `アクセスURL: http://${localIP}:${window.location.port}${window.location.pathname}`
+          : "IPアドレスを取得できませんでした";
+
+        qrGenerated = true;
+      }
+
+      btn.textContent = isVisible ? "QRコードを隠す" : "QRコードを表示";
+    }
+  </script>
+</body>
+</html>
